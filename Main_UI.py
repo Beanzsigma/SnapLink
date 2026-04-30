@@ -38,6 +38,7 @@ load_font(get_path("SpaceX.ttf"))
 main_window= ctk.CTk()
 main_window.title('SnapLink - Main Menu')
 main_window.geometry('800x300')
+main_window.resizable(False, False)
 
 def clear(canvas, canvas_img):
     for item in canvas.find_all():
@@ -111,6 +112,7 @@ def snaplink_main_ui(canvas, canvas_img):                                #MAIN U
                 name = name[:27] + "..."
             canvas.itemconfig(filename_text, text=name)
     canvas.tag_bind(imgitem, "<Button-1>", pick_file)
+    browserstart(zc, canvas)
 
 def localip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -119,20 +121,19 @@ def localip():
     s.close()
     return ip                                                  # end ai usage
 discovered_devices = []
-
 def selfannounce(zc, info):
     zc.register_service(info)
-
 def browserstart(zc, canvas):
     class Snaplinkthing:
-        def addservice(self, zc, type_, name):
+        def add_service(self, zc, type_, name):
             info = zc.get_service_info(type_, name)
             if info:
                 devicename = info.properties.get(b"name", b"Unknown").decode()
-                if devicename not in discovered_devices:
+                if devicename != socket.gethostname() and devicename not in discovered_devices:
                     discovered_devices.append(devicename)
                     main_window.after(0, lambda: update_device_list(canvas))
-        def removeservice(self, zc, type_, name):
+
+        def remove_service(self, zc, type_, name):
             pass
 
         def update_service(self, zc, type_, name):
