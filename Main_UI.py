@@ -70,7 +70,32 @@ def clear(canvas, canvas_img):
     for item in canvas.find_all():
         if item != canvas_img:
             canvas.delete(item)
-
+knownfiles ={}
+def devicefilecheck(canvas):
+    for device in discovered_devices:
+        def check(device=device):
+            try:
+                url = f"http://{device['ip']}:5007/files"
+                response = urllib.request.urlopen(url, timeout=2)
+                files=set(json.loads(response.read()))
+                name = device['name']
+                if name not in knownfiles:
+                    knownfiles[name] = files
+                else:
+                    new = files - knownfiles[name]
+                    if new:
+                        for f in new:
+                            main_window.after(0, lambda f=f, n=name: newnotification(canvas, f"{n} shared: {f}"))
+                        knownfiles[name] =files
+            except:
+                pass
+        threading.Thread(target=check, daemon=True).start()
+def newnotification(canvas, message):
+                           x, y, w, h = 400, 150, 210, 80
+                           bg= canvas.create_rectangle(x-w//2, y-h//2, x+w//2, y+h//2, fill="#222222", outline="white", width=1)
+                           notif = canvas.create_text(x, y, text=message, font=('Syncopate', 10), fill="white", anchor="center", width=180)
+                           main_window.after(3000, lambda: canvas.delete(bg))
+                           main_window.after(3000, lambda: canvas.delete(notif))
 def abstract_bg(): 
     global after_id                     #BG CANVAS VERSION
     if after_id:
@@ -100,12 +125,14 @@ browser_started = False               # MAIN WIFI CODE
 def snaplink_main_ui(canvas, canvas_img):
     global browser_started
     clear(canvas, canvas_img)
+    devicefilecheck(canvas)
     if not browser_started:
         browserstart(zc, canvas, canvas_img)
         browser_started = True
     update_device_list(canvas, canvas_img)
+
     canvas.create_text(400, 30, text="SNAPLINK", font=('SpaceX', 21), fill="#ffffff", anchor="center")
-    exit_code = canvas.create_text(400, 280, text="Exit", font=('Syncopate', 18), fill="#ffffff", anchor='center')
+    exit_code = canvas.create_text(400, 260, text="Exit", font=('Syncopate', 18), fill="#ffffff", anchor='center')
     canvas.tag_bind(exit_code, "<Button-1>", lambda e:main_window.destroy())
     canvas.tag_bind(exit_code, "<Enter>", lambda e: canvas.itemconfig(exit_code, fill="#5C5959"))
     canvas.tag_bind(exit_code, "<Leave>", lambda e: canvas.itemconfig(exit_code, fill="#ffffff"))
@@ -124,6 +151,10 @@ def snaplink_main_ui(canvas, canvas_img):
     canvas.filepic_img = ImageTk.PhotoImage(newnormalimg)
     canvas.filepic_img_hover = ImageTk.PhotoImage(hoverimg)
     imgitem = canvas.create_image(400, 140, image=canvas.filepic_img, anchor="center")
+    refresh = canvas.create_text(400, 288, text="⟳", font=("Syncopate", 17), fill="white", anchor="center")
+    canvas.tag_bind(refresh, "<Button-1>", lambda e: snaplink_main_ui(canvas, canvas_img))
+    canvas.tag_bind(refresh, "<Enter>", lambda e: canvas.itemconfig(refresh, fill="#5C5959"))
+    canvas.tag_bind(refresh, "<Leave>", lambda e: canvas.itemconfig(refresh, fill="#ffffff"))
     canvas.tag_bind(imgitem, "<Enter>", lambda e: canvas.itemconfig(imgitem, image=canvas.filepic_img_hover))
     canvas.tag_bind(imgitem, "<Leave>", lambda e: canvas.itemconfig(imgitem, image=canvas.filepic_img))
     filename_text = canvas.create_text(400, 230, text="No file selected", font=('Syncopate', 8), fill="#aaaaaa", anchor="center")           #ai usage here btw
@@ -163,10 +194,14 @@ def browserstart(zc, canvas, canvas_img):
                 if devicename not in discovered_devices:
                     discovered_devices.append({"name": devicename, "ip": ip})
                     main_window.after(0, lambda: update_device_list(canvas, canvas_img))
+                    main_window.after(0, lambda: newnotification(canvas, f"Device hopped on: {devicename}"))
 
         def remove_service(self, zc, type_, name):
-            pass
-
+            info = zc.get_service_info(type_, name)
+            if info:
+                devicename = info.properties.get(b"name", b"Unknown").decode()
+                discovered_devices[:] = [d for d in discovered_devices if d["name"] != devicename]
+                main_window.after(0, lambda: update_device_list(canvas, canvas_img))
         def update_service(self, zc, type_, name):
             pass
 
@@ -175,14 +210,18 @@ def update_device_list(canvas, canvas_img):
     for item in canvas.find_withtag("device"):
         canvas.delete(item)
     for i, device in enumerate(discovered_devices):
+        name = device["name"]
+        if len(name)>20:
+            name = name[:17] + "..."
+        displayname=device["name"] if len(device["name"]) <= 18 else device["name"][:15] + "..."
         item = canvas.create_text(110, 90 + i * 25, text=device["name"], font=('Syncopate', 8), fill="#ffffff", anchor="center", tags="device")
         canvas.tag_bind(item, "<Button-1>", lambda e, d=device: newdevice(canvas, canvas_img, d))
         canvas.tag_bind(item, "<Enter>", lambda e, it=item: canvas.itemconfig(it, fill="#5C5959"))
         canvas.tag_bind(item, "<Leave>", lambda e, it=item: canvas.itemconfig(it, fill="#ffffff"))
-
 def newdevice(canvas, canvas_img, device):
     clear(canvas, canvas_img)
     name =device["name"]
+    devicefilecheck(canvas)
     if name not in received_data:
         received_data[name] = {"files": [], "texts": []}
     canvas.create_text(400, 30, text=name.upper(), font=('SpaceX', 21), fill="#ffffff", anchor='center' )
@@ -194,6 +233,10 @@ def newdevice(canvas, canvas_img, device):
     rounded_rect(canvas, 20, 80, 380, 270, r=9, color="white", width=2)
     canvas.create_text(600, 65, text="TEXTS:", font=('Syncopate', 11), fill="#ffffff", anchor="center")
     rounded_rect(canvas, 420, 80, 780, 270, r=9, color="white", width=2)
+    refresh = canvas.create_text(750, 30, text="⟳", font=("Syncopate", 17), fill="white", anchor="center")
+    canvas.tag_bind(refresh, "<Button-1>", lambda e: newdevice(canvas, canvas_img, device))
+    canvas.tag_bind(refresh, "<Enter>", lambda e: canvas.itemconfig(refresh, fill="#5C5959"))
+    canvas.tag_bind(refresh, "<Leave>", lambda e: canvas.itemconfig(refresh, fill="#ffffff"))
     import urllib.request
     import json
     def load_files():
@@ -207,7 +250,8 @@ def newdevice(canvas, canvas_img, device):
                 else:
                     namefdisplay = namef
                 def make_dl(namef, namefdisplay, i):
-                    canvas.create_text(40, 100 + i * 25, text=namefdisplay, font=('Syncopate', 12), fill="white", anchor="w")
+                    main_window.after(0, lambda: newnotification(canvas, f"New file: {namefdisplay}"))
+                    canvas.create_text(40, 100 + i * 25, text=namefdisplay, font=('Syncopate', 12), fill="white", anchor="w", width =300)
                     normal2 = Image.open(get_path("fileimg1.png")).resize((305, 305))
                     normal2bright = normal2.point(lambda p: min(255, int(p * 2.4)))
                     hover2 = normal2bright.point(lambda p: min(255, int(p * 1 / 1.6)))
