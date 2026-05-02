@@ -1,3 +1,6 @@
+import urllib.request
+import urllib.parse
+import json
 from zeroconf import Zeroconf, ServiceInfo, ServiceBrowser
 selected_device_ip = [None]
 received_data = {}
@@ -15,10 +18,13 @@ import os
 from flask import Flask, send_file as flask_send_file, jsonify
 app = Flask(__name__)
 shared_files = []
+shared_text = [""]
+@app.route('/text')
+def get_text():
+    return jsonify(shared_text[0])
 @app.route('/files')
 def list_files():
     return jsonify([os.path.basename(f) for f in shared_files])
-
 @app.route('/download/<path:filename>')
 def download_file(filename):
     print(f"Looking for: {filename}")
@@ -27,7 +33,6 @@ def download_file(filename):
         if os.path.basename(f) == filename:
             return flask_send_file(f, as_attachment=True)
     return "not found", 404
-
 def start_flask():
     app.run(host='0.0.0.0', port=5007, debug=False, use_reloader=False)
 ctk.set_appearance_mode('dark')
@@ -81,7 +86,6 @@ def abstract_bg():
         a = a.point(lambda x: x * 0.4)
         frame.putalpha(a)
         frames.append(ImageTk.PhotoImage(frame.resize((800, 300))))  
-
     canvas = Canvas(main_window, width=800, height=300, highlightthickness=0, bd=0, bg="black")  
     canvas.place(x=0, y=0)
     canvasbg = canvas.create_image(0, 0, anchor="nw")  
@@ -92,52 +96,6 @@ def abstract_bg():
         after_id = main_window.after(20, animate, (frame_index + 1) % len(frames))
     animate()
     return canvas, canvasbg
-browser_started = False     
-def snaplink_main_ui_blue(canvas, canvas_img):
-    global browser_started
-    clear(canvas, canvas_img)
-    if not browser_started:
-        browserstart(zc, canvas, canvas_img)
-        browser_started = True
-    update_device_list(canvas, canvas_img)
-    canvas.create_text(400, 30, text="SNAPLINK", font=('SpaceX', 21), fill="#ffffff", anchor="center")
-    exit_code = canvas.create_text(400, 280, text="Exit", font=('Syncopate', 18), fill="#ffffff", anchor='center')
-    canvas.tag_bind(exit_code, "<Button-1>", lambda e:main_window.destroy())
-    canvas.tag_bind(exit_code, "<Enter>", lambda e: canvas.itemconfig(exit_code, fill="#5C5959"))
-    canvas.tag_bind(exit_code, "<Leave>", lambda e: canvas.itemconfig(exit_code, fill="#ffffff"))
-    canvas.create_text(110, 45, text="DISCOVERED\nDEVICES:", font=('Syncopate', 13), fill="#ffffff", anchor='center')
-    rounded_rect(canvas, 20, 20, 220, 280, r=9, color="white", width=2)
-    canvas.create_line((40,70, 185, 70), fill="white", width = 1.6)
-    rounded_rect(canvas, 275, 60, 525, 240, r=9, color="white", width=2)
-    rounded_rect(canvas, 580, 20, 780, 280, r=9, color="white", width=2)
-    canvas.create_text(680, 45, text="SEND TEXT:", font=('Syncopate', 14), fill="#ffffff", anchor='center')
-    canvas.create_line((595,60, 765, 60), fill="white", width = 1.6)
-    text_area = ctk.CTkTextbox(canvas, width=175,  height=200, bg_color="#111010", fg_color="#111010",border_color="white",border_width=0,text_color="white",corner_radius=6,font=('Syncopate', 10),wrap="word")
-    canvas.create_window(680, 167.5, window=text_area, anchor="center")
-    normalimg = Image.open(get_path("fileimg1.png")).resize((230, 230))
-    newnormalimg = normalimg.point(lambda p: min(255, int(p * 2.4)))
-    hoverimg = newnormalimg.point(lambda p: min(255, int(p * 1 / 1.6)))
-    canvas.filepic_img = ImageTk.PhotoImage(newnormalimg)
-    canvas.filepic_img_hover = ImageTk.PhotoImage(hoverimg)
-    imgitem = canvas.create_image(400, 140, image=canvas.filepic_img, anchor="center")
-    canvas.tag_bind(imgitem, "<Enter>", lambda e: canvas.itemconfig(imgitem, image=canvas.filepic_img_hover))
-    canvas.tag_bind(imgitem, "<Leave>", lambda e: canvas.itemconfig(imgitem, image=canvas.filepic_img))
-    filename_text = canvas.create_text(400, 230, text="No file selected", font=('Syncopate', 8), fill="#aaaaaa", anchor="center")           #ai usage here btw
-    selected_file = [None] # MODIFY THIS LATER
-    def pick_file(e):
-        from tkinter import filedialog
-        main_window.focus_force()
-        filepath = filedialog.askopenfilename()
-        if filepath:
-            selected_file[0] = filepath
-            if filepath not in shared_files:
-                shared_files.append(filepath)
-            name = os.path.basename(filepath)
-            if len(name) > 30:
-                name = name[:27] + "..."
-            canvas.itemconfig(filename_text, text=name)
-    canvas.tag_bind(imgitem, "<Button-1>", pick_file)
-
 browser_started = False               # MAIN WIFI CODE
 def snaplink_main_ui(canvas, canvas_img):
     global browser_started
@@ -170,14 +128,17 @@ def snaplink_main_ui(canvas, canvas_img):
     canvas.tag_bind(imgitem, "<Leave>", lambda e: canvas.itemconfig(imgitem, image=canvas.filepic_img))
     filename_text = canvas.create_text(400, 230, text="No file selected", font=('Syncopate', 8), fill="#aaaaaa", anchor="center")           #ai usage here btw
     selected_file = [None] # MODIFY THIS LATER
+    def textchange(e):
+        shared_text[0] = text_area.get("1.0", "end-1c")
+    text_area.bind("<KeyRelease>", textchange)
     def pick_file(e):
         from tkinter import filedialog
         main_window.focus_force()
         filepath = filedialog.askopenfilename()
         if filepath:
             selected_file[0] = filepath
-            if filepath not in shared_files:
-                shared_files.append(filepath)
+            shared_files.clear()
+            shared_files.append(filepath)
             name = os.path.basename(filepath)
             if len(name) > 30:
                 name = name[:27] + "..."
@@ -225,7 +186,7 @@ def newdevice(canvas, canvas_img, device):
     if name not in received_data:
         received_data[name] = {"files": [], "texts": []}
     canvas.create_text(400, 30, text=name.upper(), font=('SpaceX', 21), fill="#ffffff", anchor='center' )
-    back = canvas.create_text(50, 30, text="BACK", font=('Syncopate', 10), fill="#ffffff", anchor="center")
+    back = canvas.create_text(50, 30, text="BACK", font=('Syncopate', 13), fill="#ffffff", anchor="center")
     canvas.tag_bind(back, "<Button-1>", lambda e: snaplink_main_ui(canvas, canvas_img))
     canvas.tag_bind(back, "<Enter>", lambda e: canvas.itemconfig(back, fill="#5C5959"))
     canvas.tag_bind(back, "<Leave>", lambda e: canvas.itemconfig(back, fill="#ffffff"))
@@ -247,7 +208,7 @@ def newdevice(canvas, canvas_img, device):
                     namefdisplay = namef
                 def make_dl(namef, namefdisplay, i):
                     canvas.create_text(40, 100 + i * 25, text=namefdisplay, font=('Syncopate', 12), fill="white", anchor="w")
-                    normal2 = Image.open(get_path("fileimg1.png")).resize((305, 305))  # whatever size you want
+                    normal2 = Image.open(get_path("fileimg1.png")).resize((305, 305))
                     normal2bright = normal2.point(lambda p: min(255, int(p * 2.4)))
                     hover2 = normal2bright.point(lambda p: min(255, int(p * 1 / 1.6)))
                     canvas.filepic_img = ImageTk.PhotoImage(normal2bright)
@@ -276,7 +237,16 @@ def newdevice(canvas, canvas_img, device):
             if len (text)  >40:
                 text = text[:32] + "..."
             canvas.create_text(430, 100 + i *20, text=text, font = ('Syncopate', 8), fill="#ffffff", anchor="w")
-            
+    def loadtext():
+        try: 
+            url = f"http://{device['ip']}:5007/text"
+            response = urllib.request.urlopen(url, timeout=3)
+            text = json.loads(response.read())
+            main_window.after(0, lambda: canvas.create_text(430, 100, text=text, font =('Syncopate', 8), fill="#aaaaaa", anchor="nw",width =  340))
+        except: 
+            main_window.after(0, lambda: canvas.create_text(600, 150, text="No text shared", font=('Syncopate', 8), fill="#aaaaaa", anchor="nw"))
+    threading.Thread(target=loadtext, daemon=True).start()
+
 def downloadfromnewdevice(ip, filename):
     import urllib.request
     import urllib.parse
@@ -338,14 +308,10 @@ def networkstart():
 def snaplink_start_menu():
     canvas, canvasbg = abstract_bg()
     canvas.create_text(400, 135, text="SNAPLINK", font=('SpaceX', 33), fill="#ffffff", anchor="center")
-    continue_text_wifi = canvas.create_text (400, 216, text="WIFI", font=('Syncopate', 13), fill="#ffffff", anchor="center")
+    continue_text_wifi = canvas.create_text (400, 230, text="CONTINUE", font=('Syncopate', 15), fill="#ffffff", anchor="center")
     canvas.tag_bind(continue_text_wifi, "<Button-1>", lambda e: snaplink_main_ui(canvas, canvasbg))
     canvas.tag_bind(continue_text_wifi, "<Enter>", lambda e: canvas.itemconfig(continue_text_wifi, fill="#5C5959"))
     canvas.tag_bind(continue_text_wifi, "<Leave>", lambda e: canvas.itemconfig(continue_text_wifi, fill="#ffffff"))
-    continue_text_blue = canvas.create_text (400, 258, text="BLUETOOTH", font=('Syncopate', 13), fill="#ffffff", anchor="center")
-    canvas.tag_bind(continue_text_blue, "<Button-1>", lambda e: snaplink_main_ui_blue(canvas, canvasbg))
-    canvas.tag_bind(continue_text_blue, "<Enter>", lambda e: canvas.itemconfig(continue_text_blue, fill="#5C5959"))
-    canvas.tag_bind(continue_text_blue, "<Leave>", lambda e: canvas.itemconfig(continue_text_blue, fill="#ffffff"))
 threading.Thread(target=start_flask, daemon=True).start()
 serverfilestart()
 zc, info = networkstart()
