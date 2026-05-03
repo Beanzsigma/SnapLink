@@ -46,7 +46,12 @@ from ctypes import windll, byref, create_unicode_buffer, create_string_buffer
 FR_PRIVATE = 0x10
 def load_font(font_path):
     windll.gdi32.AddFontResourceExW(font_path, FR_PRIVATE, 0)
-
+def startfilepoller(canvas):
+    def poll():
+        while True:
+            devicefilecheck(canvas)
+            threading.Event().wait(5)
+    threading.Thread(target=poll, daemon=True).start()
 def rounded_rect(canvas, x1, y1, x2, y2, r=20, color="white", width=2):
     arc_kwargs = {"outline": color, "width": width}
     line_kwargs = {"fill": color, "width": width}
@@ -97,7 +102,7 @@ def newnotification(canvas, message):
                            main_window.after(3000, lambda: canvas.delete(bg))
                            main_window.after(3000, lambda: canvas.delete(notif))
 def abstract_bg(): 
-    global after_id                     #BG CANVAS VERSION
+    global after_id                                                                                                                                                                          
     if after_id:
         main_window.after_cancel(after_id)
     for widget in main_window.winfo_children():
@@ -121,11 +126,16 @@ def abstract_bg():
         after_id = main_window.after(20, animate, (frame_index + 1) % len(frames))
     animate()
     return canvas, canvasbg
-browser_started = False               # MAIN WIFI CODE
+browser_started = False             
+pollerstarted = False
 def snaplink_main_ui(canvas, canvas_img):
+    global browser_started, pollerstarted
     global browser_started
     clear(canvas, canvas_img)
     devicefilecheck(canvas)
+    if not pollerstarted:
+        startfilepoller(canvas)
+        pollerstarted= True
     if not browser_started:
         browserstart(zc, canvas, canvas_img)
         browser_started = True
