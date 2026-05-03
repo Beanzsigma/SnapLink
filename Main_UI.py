@@ -59,7 +59,7 @@ def rounded_rect(canvas, x1, y1, x2, y2, r=20, color="white", width=2):
     line_kwargs = {"fill": color, "width": width}
     canvas.create_arc(x1, y1, x1+2*r, y1+2*r, start=90, extent=90, style="arc", **arc_kwargs)
     canvas.create_arc(x2-2*r, y1, x2, y1+2*r, start=0, extent=90, style="arc", **arc_kwargs)
-    canvas.create_arc(x1, y2-2*r, x1+2*r, y2, start=180, extent=90, style="arc", **arc_kwargs)           #ai usage
+    canvas.create_arc(x1, y2-2*r, x1+2*r, y2, start=180, extent=90, style="arc", **arc_kwargs)          
     canvas.create_arc(x2-2*r, y2-2*r, x2, y2, start=270, extent=90, style="arc", **arc_kwargs)
     canvas.create_line(x1+r, y1, x2-r, y1, **line_kwargs)
     canvas.create_line(x1+r, y2, x2-r, y2, **line_kwargs)
@@ -170,7 +170,7 @@ def snaplink_main_ui(canvas, canvas_img):
     canvas.tag_bind(refresh, "<Leave>", lambda e: canvas.itemconfig(refresh, fill="#ffffff"))
     canvas.tag_bind(imgitem, "<Enter>", lambda e: canvas.itemconfig(imgitem, image=canvas.filepic_img_hover))
     canvas.tag_bind(imgitem, "<Leave>", lambda e: canvas.itemconfig(imgitem, image=canvas.filepic_img))
-    filename_text = canvas.create_text(400, 230, text="No file selected", font=('Syncopate', 8), fill="#aaaaaa", anchor="center")           #ai usage here btw
+    filename_text = canvas.create_text(400, 230, text="No file selected", font=('Syncopate', 8), fill="#aaaaaa", anchor="center")     
     selected_file = [None] # MODIFY THIS LATER
     def textchange(e):
         shared_text[0] = text_area.get("1.0", "end-1c")
@@ -193,7 +193,7 @@ def localip():
     s.connect(("8.8.8.8", 80))
     ip = s.getsockname()[0]
     s.close()
-    return ip                                                  # end ai usage
+    return ip                                                 
 discovered_devices = []
 def selfannounce(zc, info):
     zc.register_service(info)
@@ -373,4 +373,5 @@ threading.Thread(target=start_flask, daemon=True).start()
 serverfilestart()
 zc, info = networkstart()
 snaplink_start_menu()
+main_window.iconbitmap(get_path("iconsnaplink.ico"))
 main_window.mainloop()
