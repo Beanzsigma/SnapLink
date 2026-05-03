@@ -1,5 +1,7 @@
 import urllib.request
 import urllib.parse
+from plyer import notification
+from plyer import notification as plyernotification
 import json
 from zeroconf import Zeroconf, ServiceInfo, ServiceBrowser
 selected_device_ip = [None]
@@ -101,6 +103,7 @@ def newnotification(canvas, message):
                            notif = canvas.create_text(x, y, text=message, font=('Syncopate', 10), fill="white", anchor="center", width=180)
                            main_window.after(3000, lambda: canvas.delete(bg))
                            main_window.after(3000, lambda: canvas.delete(notif))
+                           threading.Thread(target=lambda: plyernotification.notify(title="Snaplink", message=message, timeout=3), daemon=True).start()
 def abstract_bg(): 
     global after_id                                                                                                                                                                          
     if after_id:
