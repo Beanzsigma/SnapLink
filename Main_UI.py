@@ -18,6 +18,8 @@ after_id=None
 import sys
 import os
 from flask import Flask, send_file as flask_send_file, jsonify
+current_canvas = [None]
+current_canvas_img = [None]
 app = Flask(__name__)
 shared_files = []
 shared_text = [""]
@@ -48,10 +50,10 @@ from ctypes import windll, byref, create_unicode_buffer, create_string_buffer
 FR_PRIVATE = 0x10
 def load_font(font_path):
     windll.gdi32.AddFontResourceExW(font_path, FR_PRIVATE, 0)
-def startfilepoller(canvas):
+def startfilepoller(canvas, canvas_img):
     def poll():
         while True:
-            devicefilecheck(canvas)
+            devicefilecheck(canvas, canvas_img)
             threading.Event().wait(5)
     threading.Thread(target=poll, daemon=True).start()
 def rounded_rect(canvas, x1, y1, x2, y2, r=20, color="white", width=2):
@@ -78,8 +80,8 @@ def clear(canvas, canvas_img):
         if item != canvas_img:
             canvas.delete(item)
 knownfiles ={}
-def devicefilecheck(canvas):
-    for device in discovered_devices:
+def devicefilecheck(canvas, canvas_img):
+    for device in discovered_devices[:]:
         def check(device=device):
             try:
                 url = f"http://{device['ip']}:5007/files"
@@ -104,6 +106,9 @@ def devicefilecheck(canvas):
                             main_window.after(0, lambda f=f, n=name: newnotification(canvas, f"{n} shared: {f}"))
                         knownfiles[name] =files
             except:
+                if device in discovered_devices:
+                        discovered_devices.remove(device)
+                        main_window.after(0, lambda: update_device_list(current_canvas[0], current_canvas_img[0]))
                 pass
         threading.Thread(target=check, daemon=True).start()
 def newnotification(canvas, message):
@@ -143,10 +148,12 @@ pollerstarted = False
 def snaplink_main_ui(canvas, canvas_img):
     global browser_started, pollerstarted
     global browser_started
+    current_canvas[0] = canvas
+    current_canvas_img[0] = canvas_img
     clear(canvas, canvas_img)
-    devicefilecheck(canvas)
+    devicefilecheck(canvas, canvas_img)
     if not pollerstarted:
-        startfilepoller(canvas)
+        startfilepoller(canvas, canvas_img)
         pollerstarted= True
     if not browser_started:
         browserstart(zc, canvas, canvas_img)
@@ -241,9 +248,11 @@ def update_device_list(canvas, canvas_img):
         canvas.tag_bind(item, "<Enter>", lambda e, it=item: canvas.itemconfig(it, fill="#5C5959"))
         canvas.tag_bind(item, "<Leave>", lambda e, it=item: canvas.itemconfig(it, fill="#ffffff"))
 def newdevice(canvas, canvas_img, device):
+    current_canvas[0] = canvas
+    current_canvas_img[0] = canvas_img
     clear(canvas, canvas_img)
     name =device["name"]
-    devicefilecheck(canvas)
+    devicefilecheck(canvas, canvas_img)
     if name not in received_data:
         received_data[name] = {"files": [], "texts": []}
     canvas.create_text(400, 30, text=name.upper(), font=('SpaceX', 21), fill="#ffffff", anchor='center' )
