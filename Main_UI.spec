@@ -5,8 +5,8 @@ a = Analysis(
     ['Main_UI.py'],
     pathex=[],
     binaries=[],
-    datas=[('bgminimal.gif', '.'), ('fileimg1.png', '.'), ('Syncopate-Regular.ttf', '.'), ('SpaceX.ttf', '.')],
-    hiddenimports=[],
+    datas=[('bgminimal.gif', '.'), ('fileimg1.png', '.'), ('icosnap.ico', '.'), ('Syncopate-Regular.ttf', '.'), ('SpaceX.ttf', '.')],
+    hiddenimports=['plyer.platforms.win.notification'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -35,4 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['icosnap.ico'],
 )

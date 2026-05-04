@@ -88,6 +88,15 @@ def devicefilecheck(canvas):
                 name = device['name']
                 if name not in knownfiles:
                     knownfiles[name] = files
+                url2 = f"http://{device['ip']}:5007/text"
+                response2 = urllib.request.urlopen(url2, timeout=2)
+                text = json.loads(response2.read())
+                texty= device['name'] +"_text"
+                if texty not in knownfiles:
+                    knownfiles[texty] = text
+                elif text != knownfiles[texty] and text != "":
+                    knownfiles[texty] = text
+                    main_window.after(0, lambda t=text, n=device['name']: newnotification(canvas, f"{n} updated text"))
                 else:
                     new = files - knownfiles[name]
                     if new:
@@ -263,7 +272,6 @@ def newdevice(canvas, canvas_img, device):
                 else:
                     namefdisplay = namef
                 def make_dl(namef, namefdisplay, i):
-                    main_window.after(0, lambda: newnotification(canvas, f"New file: {namefdisplay}"))
                     canvas.create_text(40, 100 + i * 25, text=namefdisplay, font=('Syncopate', 12), fill="white", anchor="w", width =300)
                     normal2 = Image.open(get_path("fileimg1.png")).resize((305, 305))
                     normal2bright = normal2.point(lambda p: min(255, int(p * 2.4)))
