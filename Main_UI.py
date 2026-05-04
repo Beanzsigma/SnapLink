@@ -80,20 +80,21 @@ def clear(canvas, canvas_img):
         if item != canvas_img:
             canvas.delete(item)
 knownfiles ={}
+offline_devices= []
 def devicefilecheck(canvas, canvas_img):
     for device in discovered_devices[:]:
         def check(device=device):
             try:
                 url = f"http://{device['ip']}:5007/files"
                 response = urllib.request.urlopen(url, timeout=2)
-                files=set(json.loads(response.read()))
+                files = set(json.loads(response.read()))
                 name = device['name']
                 if name not in knownfiles:
                     knownfiles[name] = files
-                url2 = f"http://{device['ip']}:5007/text"
+                url2 = f"http://{device['ip']}:5007/text"        
                 response2 = urllib.request.urlopen(url2, timeout=2)
                 text = json.loads(response2.read())
-                texty= device['name'] +"_text"
+                texty = device['name'] + "_text"
                 if texty not in knownfiles:
                     knownfiles[texty] = text
                 elif text != knownfiles[texty] and text != "":
@@ -104,13 +105,28 @@ def devicefilecheck(canvas, canvas_img):
                     if new:
                         for f in new:
                             main_window.after(0, lambda f=f, n=name: newnotification(canvas, f"{n} shared: {f}"))
-                        knownfiles[name] =files
+                        knownfiles[name] = files
             except:
                 if device in discovered_devices:
-                        discovered_devices.remove(device)
-                        main_window.after(0, lambda: update_device_list(current_canvas[0], current_canvas_img[0]))
-                pass
+                    discovered_devices.remove(device)
+                    offline_devices.append(device)
+                    knownfiles.pop(device['name'], None)
+                    knownfiles.pop(device['name'] + "_text", None)
+                    main_window.after(0, lambda: update_device_list(current_canvas[0], current_canvas_img[0]))
         threading.Thread(target=check, daemon=True).start()
+    for device in offline_devices[:]:
+        def recheck(device=device):
+            try:
+                urllib.request.urlopen(f"http://{device['ip']}:5007/files", timeout=2)
+                offline_devices.remove(device)
+                existingnames = [d["name"] for d in discovered_devices]
+                if device['name'] not in existingnames:
+                    discovered_devices.append(device)
+                    main_window.after(0, lambda: update_device_list(current_canvas[0], current_canvas_img[0]))
+                    main_window.after(0, lambda d=device: newnotification(current_canvas[0], f"Device back: {d['name']}"))
+            except:
+                pass
+        threading.Thread(target=recheck, daemon=True).start()
 def newnotification(canvas, message):
                            x, y, w, h = 400, 150, 210, 80
                            bg= canvas.create_rectangle(x-w//2, y-h//2, x+w//2, y+h//2, fill="#222222", outline="white", width=1)
@@ -220,7 +236,8 @@ def browserstart(zc, canvas, canvas_img):
             if info:
                 devicename = info.properties.get(b"name", b"Unknown").decode()
                 ip = socket.inet_ntoa(info.addresses[0])
-                if devicename not in discovered_devices:
+                existingnames = [d["name"] for d in discovered_devices]
+                if devicename not in existingnames:
                     discovered_devices.append({"name": devicename, "ip": ip})
                     main_window.after(0, lambda: update_device_list(canvas, canvas_img))
                     main_window.after(0, lambda: newnotification(canvas, f"Device hopped on: {devicename}"))
