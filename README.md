@@ -27,6 +27,7 @@
 
 ## PROJECT DEMO
 ### Video included in repository
+<img width="795" height="324" alt="Screenshot 2026-05-03 202211" src="https://github.com/user-attachments/assets/a18a527d-4cb9-4f60-8f3d-68b6a53d1c10" />
 
 
 
