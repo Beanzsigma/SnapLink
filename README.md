@@ -1,5 +1,5 @@
 # SnapLink
-### SnapLink is a Python based local file and text sharing tool that allows for smooth communication between devices on the same WIFI. It uses DNS and socket-based file transfer with a Flask server for sharing files/text. This code uses CustomTkinter, providing a minimalistic design. This GUI allows users to browse nearby devices, send files, view shared content, and instantly download files.  **Compatible with most Windows devices. **
+### SnapLink is a Python based local file and text sharing tool that allows for smooth communication between devices on the same WIFI. It uses DNS and socket-based file transfer with a Flask server for sharing files/text. This code uses CustomTkinter, providing a minimalistic design. This GUI allows users to browse nearby devices, send files, view shared content, and instantly download files.  **Compatible with most Windows devices**
 
 ## Amount of AI usage
 - Minimal AI was ued to fix/debug code
