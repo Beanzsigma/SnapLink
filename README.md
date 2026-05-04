@@ -23,7 +23,7 @@
 - Adding features and enhancing UI
 
 ## How to Deploy
-### Download the EXE file which can be found here: (https://github.com/Beanzsigma/SnapLink/releases/tag/v1). Then, double click to run. To view text and download from other devices, click one of the discovered devices on the left. NOTE: Windows might warn about unknown publisher. To run, click "More info," then "Run anyway." FYI: Some users may experience glitches when running this code, as when I tested on my Windows Surface, the UI was messed up. 
+### Download the EXE file which can be found here: (https://github.com/Beanzsigma/SnapLink/releases/tag/v1). Then, double click to run. To view text and download from other devices, click one of the discovered devices on the left. NOTE: Windows might warn about unknown publisher. To run, click "More info," then "Run anyway." FYI: Some users may experience glitches when running this code, as when I tested on my Windows Surface, the UI was messed up. However, it did work on my other laptop.
 
 ## PROJECT DEMO
 ### Video included in repository
